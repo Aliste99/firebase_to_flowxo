@@ -1,0 +1,11 @@
+{
+  "name": "firebase_to_flowxo",
+  "version": "1.0.0",
+  "description": "This module sends http-request to FlowXO on changes in Firebase database.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rinat Tuhvatshin",
+  "license": "ISC"
+}

@@ -62,31 +62,40 @@ function sendAuthLink(credentials, respPath){
   var auth = new googleAuth();
   var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
   
+  generateAuthLink(redirectUrl, respPath);
+  
   var authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
-    scope: SCOPES
+    scope: SCOPES,
+    state: respPath
   });
-  console.log("sendAuthLink confirm")
-  var link = generateAuthLink(authUrl, respPath);
-  sendChatMessage(link, respPath);
+  
+  console.log("sendAuthLink confirm");
+  sendChatMessage(authUrl, respPath);
   
 }
 
 function generateAuthLink(authUrl, respPath){
-  console.log("generateAuthLink confirm")
-  return authUrl + "&sourcetype=user"
-  //return authUrl + "&path=" + respPath + "&sourcetype=user";
+  console.log("generateAuthLink confirm");
+  return authUrl + "&path=" + respPath + "&sourcetype=user";
 }
 
 function createSpreadSheet(sheetData, respPath, tokens){
-  
 }
 
 function sendChatMessage(message, respPath){
-  request('https://flowxo.com/hooks/a/qweqx773?path=' + respPath + "&message=" + message + "&sourcetype=automessage", { json: true }, (err, res, body) => {
+  var link = 'https://flowxo.com/hooks/a/xqejpypd?path='+ respPath + "&sourcetype=automessage";
+  request({
+        method:'post',
+        url: link, 
+        form: {"message":message,
+               "path":respPath
+              }, 
+        json: true,
+    }, (err, res, body) => {
     if (err) { return console.log(err); }
     console.log(body.url);
     console.log(body.explanation);
   });
-  console.log("sendMessage confirm")
+  console.log("sendMessage confirm");
 }

@@ -2,6 +2,7 @@ var fs = require('fs');
 var readline = require('readline');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
+var oauth2Client;
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json
@@ -23,10 +24,11 @@ admin.initializeApp({
 
 // Get a database reference to our posts
 var db = admin.database();
-var ref = db.ref("sheets");
+var refSheets = db.ref("sheets");
+var refAccessCode = db.ref("access-code");
 
 // Get the data on a post that has changed
-ref.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
+refSheets.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var changedPost = snapshot.val();
   console.log("The updated post title is " + changedPost.responsePath);
   console.log(changedPost.sqlResult);
@@ -60,7 +62,7 @@ function sendAuthLink(credentials, respPath){
   var clientId = credentials.installed.client_id;
   var redirectUrl = credentials.installed.redirect_uris[0];
   var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
   
   generateAuthLink(redirectUrl, respPath);
   
@@ -99,3 +101,25 @@ function sendChatMessage(message, respPath){
   });
   console.log("sendMessage confirm");
 }
+
+refAccessCode.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey){
+  var changedPost = snapshot.val();
+  var code = changedPost.accessCode;
+  if (oauth2Client != null){
+    oauth2Client.getToken(code, (err, token) => {
+          if (err) {
+            console.log('Error while trying to retrieve access token', err);
+          }
+          var key = snapshot.key;
+          refAccessCode.child(key).update({
+              "accessCode" : changedPost.accessCode,
+              "responsePath" :  changedPost.responsePath,
+              "token" : token,
+              "status" : "token-received"
+          });
+        });
+    
+  }
+});
+
+

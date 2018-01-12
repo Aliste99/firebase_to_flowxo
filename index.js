@@ -10,6 +10,7 @@ var SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
     process.env.USERPROFILE) + '/.credentials/';
 var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
+var sheets = google.sheets('v4');
 
 
 var admin = require("firebase-admin");
@@ -30,19 +31,36 @@ var refAccessCode = db.ref("access-code");
 // Get the data on a post that has changed
 refSheets.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var changedPost = snapshot.val();
+  var token = null;
   console.log("The updated post title is " + changedPost.responsePath);
   console.log(changedPost.sqlResult);
+  var respPath = changedPost.responsePath;
   
-  // Load client secrets from a local file.
-  fs.readFile('./client_secret.json', function processClientSecrets(err, content) {
-    if (err) {
-      console.log('Error loading client secret file: ' + err);
-      return;
-    }
-    // Authorize a client with the loaded credentials, then call the
-    // Google Sheets API.
-    sendAuthLink(JSON.parse(content), changedPost.responsePath);
+  for(var i = 0; i < 27; i ++)
+  {
+    respPath = respPath.substr(1);
+  }
+  
+  refAccessCode.child(respPath).once("value", function(snapshot) {
+     console.log("did");
+     var post = snapshot.val();
+     token = post.token;
   });
+  
+  
+  
+  if (token == null){
+  // Load client secrets from a local file.
+    fs.readFile('./client_secret.json', function processClientSecrets(err, content) {
+      if (err) {
+        console.log('Error loading client secret file: ' + err);
+        return;
+      }
+      // Authorize a client with the loaded credentials, then call the
+      // Google Sheets API.
+      sendAuthLink(JSON.parse(content), respPath);
+    });
+  }else createSpreadSheet(changedPost.sqlResult, changedPost.responsePath, token);
     
     //TODO: Check presence of auth tokens
     //TODO: If token present, create spreadsheet and send link,
@@ -83,6 +101,41 @@ function generateAuthLink(authUrl, respPath){
 }
 
 function createSpreadSheet(sheetData, respPath, tokens){
+    const updateSpreadsheet = () => {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_ID,
+      process.env.GOOGLE_SECRET
+    );
+    
+    oauth2Client.setCredentials({
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+    });
+
+    oauth2Client.refreshAccessToken((err, tokens) => {
+    if (err) return console.error(err);
+      
+        oauth2Client.setCredentials({
+          access_token: tokens.access_token
+        });
+        sheets.spreadsheets.values.append({
+          spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+          range: 'Sheet1',
+          valueInputOption: 'RAW',
+          insertDataOption: 'INSERT_ROWS',
+          resource: {
+            values: [
+              [new Date().toISOString(), "Some value", "Another value"]
+            ],
+          },
+          auth: oauth2Client
+        }, (err, response) => {
+          if (err) return console.error(err);
+        });
+
+    });
+  };
+  updateSpreadsheet();
+  console.log("SpreadSeet updated");
 }
 
 function sendChatMessage(message, respPath){
@@ -109,17 +162,18 @@ refAccessCode.orderByChild("status").equalTo("new").on("child_added", function(s
     oauth2Client.getToken(code, (err, token) => {
           if (err) {
             console.log('Error while trying to retrieve access token', err);
-          }
-          var key = snapshot.key;
-          refAccessCode.child(key).update({
-              "accessCode" : changedPost.accessCode,
-              "responsePath" :  changedPost.responsePath,
-              "token" : token,
-              "status" : "token-received"
-          });
+          }else sendToken(changedPost, token);
         });
     
   }
 });
+
+function sendToken(snapshot, token){
+  refAccessCode.child(snapshot.key).update({
+              "accessCode" : snapshot.accessCode,
+              "token" : token,
+              "status" : "token-received"
+          });
+}
 
 

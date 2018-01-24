@@ -1,3 +1,4 @@
+var currentYear = 2018;
 var fs = require('fs');
 var readline = require('readline');
 var google = require('googleapis');
@@ -98,25 +99,34 @@ function setSqlQuery(post){
   var name = post.name;
   var lastname = post.lastname;
   var patronymic = post.patronymic;
+  var street = post.street;
+  var building = post.building;
+  var yearOfBirth = post.yearOfBirth;
+  var age = post.age;
   var query;
   
-  if (name != "" && lastname != "" && patronymic != ""){
-    query = "(SELECT FullNameRu, Founders, HeadName, Link FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
+  if (name != "" || lastname != "" || patronymic != ""){
+    query = "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
     "WHERE HeadName LIKE '%" + lastname + "%' AND HeadName LIKE '%" + name + "%' AND HeadName LIKE '%" + patronymic + "%')"+
     " UNION " +
-    "(SELECT FullNameRu, Founders, HeadName, Link FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
+    "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
     "WHERE Founders LIKE '%" + lastname + "%' AND Founders LIKE '%" + name + "%' AND Founders LIKE '%" + patronymic + "%')";
-  }else if (name != "" && lastname != "" && patronymic == ""){
-    query = "(SELECT FullNameRu, Founders, HeadName, Link FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
-    "WHERE HeadName LIKE '%" + lastname + "%' AND HeadName LIKE '%" + name + "%')"+
-    " UNION " +
-    "(SELECT FullNameRu, Founders, HeadName, Link FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
-    "WHERE Founders LIKE '%" + lastname + "%' AND Founders LIKE '%" + name + "%')";
   }else if (number != ""){
-    query = "SELECT FullNameRu, Link, Phone FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
+    query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
     "WHERE Phone LIKE '%" + number + "%'";
+  }else if (street != ""){
+    query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
+    "WHERE Street LIKE '%" + street + "%'";
+  }else if (street != "" && building != ""){
+    query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
+    "WHERE Street LIKE '%" + street + "%' AND Building LIKE '%" + building + "%'";
+  // }else if (age != ""){
+  //   query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
+  //   "WHERE Street LIKE '%" + street + "%' AND Building LIKE '%" + building + "%'";
   }
+  else query = "SELECT * FROM `Links` WHERE Link = 0";
   
+  console.log(query);
   return query;
 }
 
@@ -124,7 +134,7 @@ function setSqlQuery(post){
 refSheets.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var changedPost = snapshot.val();
   var token = null;
-  console.log("The updated post title is " + changedPost.responsePath);
+  //console.log("The updated post title is " + changedPost.responsePath);
   console.log(changedPost.sqlResult);
   var respPath = changedPost.responsePath;
 
@@ -133,7 +143,6 @@ refSheets.orderByChild("status").equalTo("new").on("child_added", function(snaps
   }
 
   refAccessCode.child(respPath).once("value", function(snapshot) {
-    console.log("did");
     var post = snapshot.val();
     //token = post.token;
   });

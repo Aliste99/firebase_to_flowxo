@@ -4,7 +4,21 @@ var readline = require('readline');
 var google = require('googleapis');
 var googleAuth = require('google-auth-library');
 var oauth2Client;
-var requestUrl = 'https://flowxo.com/hooks/a/4wpvd8bb';
+var requestUrl = 'https://flowxo.com/hooks/a/nwyza36j';
+  
+var mysql = require('mysql');
+var mySQL_business = mysql.createConnection({
+    host: constants.MYSQL_HOST,
+    user: constants.MYSQL_USER,
+    password: constants.MYSQL_PASSWORD,
+    database: "mjdb_kloopasia"
+  });
+var mySQL_persons = mysql.createConnection({
+    host: constants.MYSQL_HOST_PERSONS,
+    user: constants.MYSQL_USER_PERSONS,
+    password: constants.MYSQL_PASSWORD_PERSONS,
+    database: "spider"
+  });  
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json
@@ -34,22 +48,16 @@ var refInputData = db.ref("inputdata");
 
 refInputData.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var post = snapshot.val();
-  var mysql = require('mysql');
   var sqlQuery  = setSqlQuery(post);
   var sqlResult;
   console.log("vars completed");
-  var mySQL = mysql.createConnection({
-    host: constants.MYSQL_HOST,
-    user: constants.MYSQL_USER,
-    password: constants.MYSQL_PASSWORD,
-    database: "mjdb_kloopasia"
-  });
+  
   console.log("mySQL completed");
-  mySQL.connect(function(err) {
+  mySQL_business.connect(function(err) {
     if (err) throw console.log(err);
     console.log("Connected!");
     if(sqlQuery){
-      mySQL.query(sqlQuery, function (err, result) {
+      mySQL_business.query(sqlQuery, function (err, result) {
         if (err) throw err;
         console.log(result);
         sqlResult = result;
@@ -68,7 +76,7 @@ function sendSqlResultToFlowXO(snapshot, sqlResult){
     method: 'post',
     url: requestUrl,
     form: {
-      "message": sqlResult,
+      "sqlresult": sqlResult,
       "path": respPath,
     },
     json: true,
@@ -107,16 +115,23 @@ function setSqlQuery(post){
   
   if (name != "" || lastname != "" || patronymic != ""){
     query = "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
-    "WHERE HeadName LIKE '%" + lastname + "%' AND HeadName LIKE '%" + name + "%' AND HeadName LIKE '%" + patronymic + "%')"+
+    "WHERE HeadName LIKE '%" + lastname + " " + name + " " + patronymic + "%')"+
     " UNION " +
     "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
-    "WHERE Founders LIKE '%" + lastname + "%' AND Founders LIKE '%" + name + "%' AND Founders LIKE '%" + patronymic + "%')";
+    "WHERE Founders LIKE '%" + lastname + " " + name + " " + patronymic + "%')";
+    
+  //  query = "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
+  //  "WHERE HeadName LIKE '%" + lastname + "%' AND HeadName LIKE '%" + name + "%' AND HeadName LIKE '%" + patronymic + "%')"+
+  //  " UNION " +
+  //  "(SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
+  //  "WHERE Founders LIKE '%" + lastname + "%' AND Founders LIKE '%" + name + "%' AND Founders LIKE '%" + patronymic + "%')";
+    
   }else if (number != ""){
     query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " + 
     "WHERE Phone LIKE '%" + number + "%'";
-  }else if (street != ""){
-    query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
-    "WHERE Street LIKE '%" + street + "%'";
+  //}else if (street != ""){
+    //query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
+    //"WHERE Street LIKE '%" + street + "%'";
   }else if (street != "" && building != ""){
     query = "SELECT * FROM Links LEFT JOIN Pages ON Links.LinkID = Pages.Links_LinkID " +
     "WHERE Street LIKE '%" + street + "%' AND Building LIKE '%" + building + "%'";

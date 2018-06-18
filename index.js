@@ -26,7 +26,6 @@ admin.initializeApp({
 
 // Get a database reference to our posts
 
-
 refInputData.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var post = snapshot.val();
   var sqlQuery  = sqlModule.setSqlQuery(post);
@@ -77,13 +76,6 @@ refInputData.orderByChild("status").equalTo("new").on("child_added", function(sn
   
 });
 
-function updateFirebaseData(snapshot, sqlResult){
-  refInputData.child(snapshot.key).update({
-    "status": "sqlResult received",
-    "result": sqlResult
-  });
-}
-
 // Get the data on a post that has changed
 refSheets.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var changedPost = snapshot.val();
@@ -108,7 +100,6 @@ refSheets.orderByChild("status").equalTo("new").on("child_added", function(snaps
   });
 });
 
-
 refAccessCode.orderByChild("status").equalTo("new").on("child_added", function(snapshot, prevChildKey) {
   var changedPost = snapshot.val();
   var code = changedPost.accessCode;
@@ -121,3 +112,10 @@ refAccessCode.orderByChild("status").equalTo("new").on("child_added", function(s
     });
   }
 });
+
+function updateFirebaseData(snapshot, sqlResult){
+  refInputData.child(snapshot.key).update({
+    "status": "sqlResult received",
+    "result": sqlResult
+  });
+}
